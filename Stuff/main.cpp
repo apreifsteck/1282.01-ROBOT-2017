@@ -52,6 +52,55 @@ const int WEST = 90;
 const int NORTHWEST = 45;
 const double M_PI = 3.14159265358979323846264338327950288;
 
+#define TURN_SAT 0
+#define PUSH_BTN 1
+#define PULL_LEVER 2
+#define EXTRACT_CORE 3
+#define DUMP_CORE 4
+#define PUSH_END_BTN 5
+
+//Movement Methods
+
+struct Task{
+    float startX;
+    float startY;
+    int direction;
+    bool completed;
+    float timeout;
+};
+
+struct State{
+    float currentX;
+    float currentY;
+    int currentDirection;
+    float time;
+};
+
+void PushButton() {
+    
+}
+
+void ExtractCore(){
+    
+}
+void DumpCore(){
+    
+}
+
+void PullLever() {
+    
+}
+void TurnSatellite() {
+    
+}
+void PushEndButton() {
+    
+}
+
+void ResetTask(struct Task){
+    
+}
+
 double DegreeToRadian(int degree) {
     return (degree / 180.0) * M_PI;
     
@@ -117,6 +166,35 @@ void Drive(int power, int moveDirection, int facingDirection) {
 
 int main(void)
 {
+    
+    // insert code here...
+    int tasks[] = {TURN_SAT, PUSH_BTN, PULL_LEVER,
+        EXTRACT_CORE, DUMP_CORE, PUSH_END_BTN};
+    for(int i = 0; i < tasks.length(); i++) {
+        switch (tasks[i]) {
+            case TURN_SAT:
+                TurnSatellite();
+                break;
+            case PUSH_BTN:
+                PushButton();
+                break;
+            case PULL_LEVER:
+                PullLever();
+                break;
+            case EXTRACT_CORE:
+                ExtractCore();
+                break;
+            case DUMP_CORE:
+                DumpCore();
+                break;
+            case PUSH_END_BTN:
+                PushEndButton();
+                break;
+            default:
+                break;
+        }
+    }
+    
     //    fLeft.SetPercent(15);
     //    Sleep(2000);
     //    StopMotors();

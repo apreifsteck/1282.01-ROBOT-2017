@@ -28,8 +28,8 @@ float LIGHTX = 0;
 float LIGHTY = 0;
 float LEVERX = 0;
 float LEVERY = 0;
-float BUTTONX = 0;
-float BUTTONY = 0;
+float BUTTONX = 25;
+float BUTTONY = 63.199;
 float SATX = 0;
 float SATY = 0;
 float COREX = 0;
@@ -237,16 +237,16 @@ void CalibrateRPS(){
     serv.SetMin(servMin);
     serv.SetMax(servMax);
 
-//    while(switch7.Value()) {}
-//    LCD.WriteLine("Light Values Found.");
-//    LIGHTX = RPS.X();
-//    LIGHTY = RPS.Y();
-//    Sleep(1000);
-//    while(switch7.Value()) {}
-//    LCD.WriteLine("Lever Values Found.");
-//    LEVERX = RPS.X();
-//    LEVERY = RPS.Y();
-//    Sleep(1000);
+    while(switch7.Value()) {}
+    LCD.WriteLine("Light Values Found.");
+    LIGHTX = RPS.X();
+    LIGHTY = RPS.Y();
+    Sleep(1000);
+    while(switch7.Value()) {}
+    LCD.WriteLine("Lever Values Found.");
+    LEVERX = RPS.X();
+    LEVERY = RPS.Y();
+    Sleep(1000);
     while(switch7.Value());
     COREX = RPS.X();
     COREY = RPS.Y();
@@ -293,9 +293,13 @@ int readCoreLight() {
        Sleep(2000);
        return -1; //for on no light
 }
-
+//Works on the assumption that you start from the switch
 void PushButton() {
-
+    Drive(20, WEST, NORTH);
+    while(RPS.X() < BUTTONX);
+    StopMotors();
+    while(RPS.Y() < BUTTONY);
+    Drive(20, SOUTH, NORTH);
 }
 
 
@@ -307,8 +311,20 @@ void PullLever() {
 
 }
 void TurnSatellite() {
+    Drive(20,NORTH,NORTH);
+    Sleep(500);
+    StopMotors();
+    Sleep(200);
+    Drive(40,WEST, NORTH);
+    while(switch3.Value() && switch2.Value());
+    Drive(20,NORTH,NORTH);
+    while(switch5.Value());
+    Drive(20, EAST, NORTH);
+    while(RPS.SatellitePercent() < 100);
+    StopMotors();
 
 }
+
 void PushEndButton() {
 
 }
@@ -340,39 +356,56 @@ void ExtractCore(){
 
 int main(int argc, const char * argv[]) {
     // insert code here...
-    CalibrateRPS();
+    //CalibrateRPS();
+    RPS.InitializeTouchMenu();989
     float x, y;
     while(!LCD.Touch(&x, &y));
-    int coreColor = -1;
-    int tasks[] = {EXTRACT_CORE, READ_LIGHT, TURN_SAT, PUSH_BTN, PULL_LEVER,
-                    DUMP_CORE, PUSH_END_BTN};
-    for(int i = 0; i < (sizeof(tasks)/sizeof(*tasks)); i++) {
-        switch (tasks[i]) {
-        case READ_LIGHT:
-            moveToCoreLight();
-            coreColor = readCoreLight();
-            break;
-        case TURN_SAT:
-            TurnSatellite();
-            break;
-        case PUSH_BTN:
-            PushButton();
-            break;
-        case PULL_LEVER:
-            PullLever();
-            break;
-        case EXTRACT_CORE:
-            ExtractCore();
-            break;
-        case DUMP_CORE:
-            DumpCore();
-            break;
-        case PUSH_END_BTN:
-            PushEndButton();
-            break;
-        default:
-            break;
-        }
+//    int coreColor = -1;
+//    int tasks[] = {EXTRACT_CORE, READ_LIGHT, TURN_SAT, PUSH_BTN, PULL_LEVER,
+//                    DUMP_CORE, PUSH_END_BTN};
+//    for(int i = 0; i < (sizeof(tasks)/sizeof(*tasks)); i++) {
+//        switch (tasks[i]) {
+//        case READ_LIGHT:
+//            moveToCoreLight();
+//            coreColor = readCoreLight();
+//            break;
+//        case TURN_SAT:
+//            TurnSatellite();
+//            break;
+//        case PUSH_BTN:
+//            PushButton();
+//            break;
+//        case PULL_LEVER:
+//            PullLever();
+//            break;
+//        case EXTRACT_CORE:
+//            ExtractCore();
+//            break;
+//        case DUMP_CORE:
+//            DumpCore();
+//            break;
+//        case PUSH_END_BTN:
+//            PushEndButton();
+//            break;
+//        default:
+//            break;
+//        }
+//    }
+    while(true){
+        LCD.Write("RPS X: " );
+        LCD.WriteLine(RPS.X());
+        LCD.Write("RPS Y: " );
+        LCD.WriteLine(RPS.Y());
+        LCD.Write("RPS H: " );
+        LCD.WriteLine(RPS.Heading());
+
+        LCD.Clear();
     }
+//    while(!LCD.Touch(&x, &y)) {
+//        LCD.WriteLine("Left Optosensor: %f", lLine.Value());
+//        LCD.WriteLine("Left Optosensor: %f", cLine.Value());
+//        LCD.WriteLine("Left Optosensor: %f", rLine.Value());
+//        LCD.Clear();
+//    }
 
 }

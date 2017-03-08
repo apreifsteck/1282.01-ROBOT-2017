@@ -82,6 +82,10 @@ const double M_PI = 3.14159265358979323846264338327950288;
 const int servMin = 990;
 const int servMax = 1893;
 
+const float CORE_LINE_THRESHOLD;
+const float DUMP_LINE_THRESHOLD;
+
+
 //tasks
 #define TURN_SAT 0
 #define READ_LIGHT 1
@@ -95,9 +99,7 @@ const int servMax = 1893;
 
 //Movement Methods
 
-void MoveAlongWall(int directionWall, int directionMove){
 
-}
 
 
 struct Task{
@@ -203,26 +205,66 @@ void Drive(int power, int moveDirection, int facingDirection) {
 //Goes to a certain heading?
 void Rotate(int degree) {
     LCD.WriteLine(RPS.Heading());
-    StopMotors();
-    int power = 0;
-    if(abs(RPS.Heading() - (float)degree + M_PI/4.0) < 180) {
-        power = 15;
+         StopMotors();
+       int power = 0;
+       if(abs(RPS.Heading() - (float)degree + M_PI/4.0) < 180) {
+           power = 15;
+       int modifier = 1;
+       if((int)(RPS.Heading() - degree + 360) % 360 < 180) {
+           modifier *= 1;
+       }
+       else {
+           power = -15;
+           modifier *= -1;
+       }
+       int degRem = (int)(RPS.Heading() - degree + 360) % 360;
+       if(degRem >= 180) {
+           degRem = 360-degRem;
+         }
+       bool check = true;
+       while(abs(RPS.Heading() - (float)degree + M_PI/4.0) > 5) {
+           if(check) {
+               AllMotors(power);
+               Sleep(100);
+           } else {
+               StopMotors();
+               Sleep(50);
+       while(degRem > 3) {
+           degRem = (int)(RPS.Heading() - degree + 360) % 360;
+           if(degRem >= 180) {
+               degRem = 360-degRem;
+           }
+           check = !check;
+           int power = (degRem / 9 + 7) * modifier;
+           AllMotors(power);
+         }
+         StopMotors();
+}
+       }
+       }
+}
+
+bool DetectLine(AnalogInputPin sensor, float threshold) {
+    if (sensor.Value() < threshold) {
+        return true;
     }
-    else {
-        power = -15;
-    }
-    bool check = true;
-    while(abs(RPS.Heading() - (float)degree + M_PI/4.0) > 5) {
-        if(check) {
-            AllMotors(power);
-            Sleep(100);
-        } else {
-            StopMotors();
-            Sleep(50);
-        }
-        check = !check;
-    }
-    StopMotors();
+   return false;
+}
+
+float DriveOnLine(int motorPercent, int moveDirection, int facingDirection, float threshold) {
+
+   if(DetectLine(lLine, threshold) && DetectLine(rLine, threshold)) {
+       Drive(motorPercent, moveDirection, facingDirection);
+       } else if((DetectLine(rLine, threshold) && DetectLine(cLine, threshold)) || DetectLine(rline,threshold)) {   //to the left of the line
+       Drive(10, moveDirection - 90, facingDirection);
+       LCD.WriteLine("Shit is fucked.");
+       } else if((DetectLine(lLine, threshold) && DetectLine(cLine, threshold)) || DetectLine(lline,threshold)) {  //to the right of the line
+        Drive(10, moveDirection + 90, facingDirection);
+       }
+       else {
+       LCD.WriteLine("Shit is suppppperrr fucked.");
+       StopMotors();
+   }
 }
 
 void CalibrateRPS(){
@@ -321,6 +363,8 @@ void TurnSatellite() {
     while(switch5.Value());
     Drive(20, EAST, NORTH);
     while(RPS.SatellitePercent() < 100);
+    Drive(20,SOUTHEAST, NORTH);
+    Sleep(500 );
     StopMotors();
 
 }
@@ -337,9 +381,10 @@ void ExtractCore(){
     int degree = COREH;
     serv.SetDegree(0);
     Sleep(500);
-    //Rotate(degree);
+    Rotate(degree);
     Drive(25,COREH-90, COREH);
-    Sleep(3000);
+    Sleep(1000);
+    DriveOnLine(25, COREH-90, COREH,);
     StopMotors();
     Sleep(200);
     Drive(-10, COREH-90, COREH );
@@ -357,55 +402,56 @@ void ExtractCore(){
 int main(int argc, const char * argv[]) {
     // insert code here...
     //CalibrateRPS();
-    RPS.InitializeTouchMenu();989
+    RPS.InitializeTouchMenu();
     float x, y;
     while(!LCD.Touch(&x, &y));
-//    int coreColor = -1;
-//    int tasks[] = {EXTRACT_CORE, READ_LIGHT, TURN_SAT, PUSH_BTN, PULL_LEVER,
-//                    DUMP_CORE, PUSH_END_BTN};
-//    for(int i = 0; i < (sizeof(tasks)/sizeof(*tasks)); i++) {
-//        switch (tasks[i]) {
-//        case READ_LIGHT:
-//            moveToCoreLight();
-//            coreColor = readCoreLight();
-//            break;
-//        case TURN_SAT:
-//            TurnSatellite();
-//            break;
-//        case PUSH_BTN:
-//            PushButton();
-//            break;
-//        case PULL_LEVER:
-//            PullLever();
-//            break;
-//        case EXTRACT_CORE:
-//            ExtractCore();
-//            break;
-//        case DUMP_CORE:
-//            DumpCore();
-//            break;
-//        case PUSH_END_BTN:
-//            PushEndButton();
-//            break;
-//        default:
-//            break;
-//        }
-//    }
-    while(true){
-        LCD.Write("RPS X: " );
-        LCD.WriteLine(RPS.X());
-        LCD.Write("RPS Y: " );
-        LCD.WriteLine(RPS.Y());
-        LCD.Write("RPS H: " );
-        LCD.WriteLine(RPS.Heading());
-
-        LCD.Clear();
+    int coreColor = -1;
+    int tasks[] = {READ_LIGHT, TURN_SAT,PULL_LEVER, PUSH_BTN, EXTRACT_CORE,
+                    DUMP_CORE, PUSH_END_BTN};
+    for(int i = 0; i < (sizeof(tasks)/sizeof(*tasks)); i++) {
+        switch (tasks[i]) {
+        case READ_LIGHT:
+            moveToCoreLight();
+            coreColor = readCoreLight();
+            break;
+        case TURN_SAT:
+            TurnSatellite();
+            break;
+        case PUSH_BTN:
+            PushButton();
+            break;
+        case PULL_LEVER:
+            PullLever();
+            break;
+        case EXTRACT_CORE:
+            ExtractCore();
+            break;
+        case DUMP_CORE:
+            DumpCore();
+            break;
+        case PUSH_END_BTN:
+            PushEndButton();
+            break;
+        default:
+            break;
+        }
     }
-//    while(!LCD.Touch(&x, &y)) {
-//        LCD.WriteLine("Left Optosensor: %f", lLine.Value());
-//        LCD.WriteLine("Left Optosensor: %f", cLine.Value());
-//        LCD.WriteLine("Left Optosensor: %f", rLine.Value());
+//    while(true){
+//        LCD.Write("RPS X: " );
+//        LCD.WriteLine(RPS.X());
+//        LCD.Write("RPS Y: " );
+//        LCD.WriteLine(RPS.Y());
+//        LCD.Write("RPS H: " );
+//        LCD.WriteLine(RPS.Heading());
+
 //        LCD.Clear();
 //    }
+    while(!LCD.Touch(&x, &y)) {
+        LCD.WriteLine("Left Optosensor: %f", lLine.Value());
+        LCD.WriteLine("Left Optosensor: %f", cLine.Value());
+        LCD.WriteLine("Left Optosensor: %f", rLine.Value());
+        Sleep(20);
+        LCD.Clear();
+    }
 
 }

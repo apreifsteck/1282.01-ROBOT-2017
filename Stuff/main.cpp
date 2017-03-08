@@ -62,6 +62,7 @@ const int NORTHWEST = 45;
 const double M_PI = 3.14159265358979323846264338327950288;
 const int servMin = 990;
 const int servMax = 1893;
+const double LIGHTVALUE = 2.0;
 
 
 #define TURN_SAT 0
@@ -142,19 +143,21 @@ void AllMotors(int power)
  * USE WHEN RPS IS PRESENT
  * Uses current information to find where to move
  */
-void Drive(int power, float x, float y, bool bol) {
+void Drive(int power, float x, float y) {
     float direction = RPS.Heading();
+    while((int)direction % 45 > 2) {
+        AllMotors(8);
+    }
+    
     float curX = RPS.X();
     float curY = RPS.Y();
     
     float deltaX = (x - curX);
     float deltaY = (y - curY);
     
-    //deltaX = deltaX / (deltaX * deltaX + deltaY + deltaY);
-    //deltaY = deltaY / (deltaX * deltaX + deltaY + deltaY);
-    
     float arctan = (deltaY/deltaX) + 180 + M_PI/4.0;
     float degree = direction - arctan;
+    
     
     deltaX = cos(degree);
     deltaY = sin(degree);
@@ -202,24 +205,25 @@ void Drive(int power, int moveDirection, int facingDirection) {
     bLeft.SetPercent(yPow);
 }
 
-/*
- float DriveOnLine(int motorPercent);
- {
- if(lLine.Value() && cLine.Value() && rLine.Value()) {
- Drive(motorPercent, SOUTHWEST, NORTHWEST);
- } else if(rLine.Value() && lLine.Value()) {   //Right and left side are messed up
- StopMotors();
- LCD.WriteLine("Shit is fucked.");
- } else if(rLine.Value()) {  //Right side isn't providing input
- Drive(motorPercent, SOUTH, NORTHWEST);
- } else if (lLine.Value()) {   //Left side isn't providing input
- Drive(motorPercent, WEST, NORTHWEST);
- }
- else {
- LCD.WriteLine("Shit is suppppperrr fucked.");
- }
- }
- */
+float DriveOnLine(int motorPercent)
+{
+    int time = RPS.Time();
+    while(time - RPS.Time() < 3) {
+        if(lLine.Value() < LIGHTVALUE && cLine.Value() < LIGHTVALUE && rLine.Value() < LIGHTVALUE) {
+            Drive(motorPercent, SOUTHWEST, NORTHWEST);
+        } else if(rLine.Value() > LIGHTVALUE && lLine.Value() > LIGHTVALUE) {   //Right and left side are messed up
+            StopMotors();
+            LCD.WriteLine("Shit is fucked.");
+        } else if(rLine.Value() > LIGHTVALUE) {  //Right side isn't providing input
+            Drive(motorPercent, SOUTH, NORTHWEST);
+        } else if(lLine.Value() > LIGHTVALUE) {   //Left side isn't providing input
+            Drive(motorPercent, WEST, NORTHWEST);
+        }
+        else {
+            LCD.WriteLine("Shit is suppppperrr fucked.");
+        }
+    }
+}
 
 void Rotate(int degree) {
     LCD.WriteLine(RPS.Heading());
@@ -275,12 +279,17 @@ void testRotate() {
     Sleep(1000);
 }
 
+void testLine()
+{
+    DriveOnLine(20);
+}
+
 int main(void) {
     LCD.Clear( FEHLCD::Black );
     LCD.SetFontColor( FEHLCD::White );
     RPS.InitializeTouchMenu();
     SD.OpenLog();
-    testRotate();
+    testLine();
     SD.CloseLog();
 }
 

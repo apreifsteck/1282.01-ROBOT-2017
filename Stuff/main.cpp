@@ -202,145 +202,219 @@ void Drive(int power, int moveDirection, int facingDirection) {
     bLeft.SetPercent(yPow);
 }
 
+/*
+ float DriveOnLine(int motorPercent);
+ {
+ if(lLine.Value() && cLine.Value() && rLine.Value()) {
+ Drive(motorPercent, SOUTHWEST, NORTHWEST);
+ } else if(rLine.Value() && lLine.Value()) {   //Right and left side are messed up
+ StopMotors();
+ LCD.WriteLine("Shit is fucked.");
+ } else if(rLine.Value()) {  //Right side isn't providing input
+ Drive(motorPercent, SOUTH, NORTHWEST);
+ } else if (lLine.Value()) {   //Left side isn't providing input
+ Drive(motorPercent, WEST, NORTHWEST);
+ }
+ else {
+ LCD.WriteLine("Shit is suppppperrr fucked.");
+ }
+ }
+ */
+
 void Rotate(int degree) {
     LCD.WriteLine(RPS.Heading());
     StopMotors();
-    int power = 0;
-    if(abs(RPS.Heading() - (float)degree + M_PI/4.0) < 180) {
-        power = 15;
+    int modifier = 1;
+    if((int)(RPS.Heading() - degree + 360) % 360 < 180) {
+        modifier *= 1;
     }
     else {
-        power = -15;
+        modifier *= -1;
     }
-    bool check = true;
-    while(abs(RPS.Heading() - (float)degree + M_PI/4.0) > 5) {
-        if(check) {
-            AllMotors(power);
-            Sleep(100);
-        } else {
-            StopMotors();
-            Sleep(50);
+    int degRem = (int)(RPS.Heading() - degree + 360) % 360;
+    if(degRem >= 180) {
+        degRem = 360-degRem;
+    }
+    while(degRem > 3) {
+        degRem = (int)(RPS.Heading() - degree + 360) % 360;
+        if(degRem >= 180) {
+            degRem = 360-degRem;
         }
-        check = !check;
+        int power = (degRem / 9 + 7) * modifier;
+        AllMotors(power);
     }
     StopMotors();
+}
+
+void testRotate() {
+    LCD.Write(RPS.Heading());
+    Sleep(1000);
+    Rotate(SOUTH);
+    SD.Printf("Should be 180 is %f\n", RPS.Heading());
+    LCD.Write("Facing South.");
+    Sleep(1000);
+    Rotate(WEST);
+    SD.Printf("Should be 90 is %f\n", RPS.Heading());
+    LCD.Write("Facing West.");
+    Sleep(1000);
+    Rotate(SOUTHWEST);
+    SD.Printf("Should be 135 is %f\n", RPS.Heading());
+    LCD.Write("Facing Southwest.");
+    Sleep(1000);
+    Rotate(NORTH);
+    SD.Printf("Should be 0 is %f\n", RPS.Heading());
+    LCD.Write("Facing North.");
+    Sleep(1000);
+    Rotate(EAST);
+    SD.Printf("Should be 270 is %f\n", RPS.Heading());
+    LCD.Write("Facing East.");
+    Sleep(1000);
+    Rotate(NORTHWEST);
+    SD.Printf("Should be 45 is %f\n", RPS.Heading());
+    LCD.Write("Facing Northwest.");
+    Sleep(1000);
 }
 
 int main(void) {
     LCD.Clear( FEHLCD::Black );
     LCD.SetFontColor( FEHLCD::White );
-    
-    //-.983 flat
-    //-.964
     RPS.InitializeTouchMenu();
     SD.OpenLog();
-    
-    serv.SetMin(servMin);
-    serv.SetMax(servMax);
-    float LIGHTX = 0;
-    float LIGHTY = 0;
-    float LEVERX = 0;
-    float LEVERY = 0;
-    while(switch7.Value()) {}
-    LCD.WriteLine("Light Values Found.");
-    LIGHTX = RPS.X();
-    LIGHTY = RPS.Y();
-    Sleep(1000);
-    while(switch7.Value()) {}
-    LCD.WriteLine("Lever Values Found.");
-    LEVERX = RPS.X();
-    LEVERY = RPS.Y();
-    Sleep(1000);
-    while(switch6.Value()) {}
-    LCD.WriteLine("Getting Ready.");
-    serv.SetDegree(180);
-    Sleep(3000);
-    
-    while(cds.Value() > 1){    LCD.WriteLine(cds.Value());
-    }
-    
-    Drive(15, NORTH, NORTH);
-    while(RPS.Y() > LIGHTY + 1.25) {}
-    Drive(15, WEST, NORTH);
-    while(RPS.X() < LIGHTX - 0.5) {}
-    StopMotors();
-    if(cds.Value() < .6) {                  //RED
-        LCD.WriteLine("Light: RED");
-        SD.Printf("X: %f\t Y: %f", RPS.X(), RPS.Y());
-        SD.Printf("X: %f\t Y: %f", LIGHTX, LIGHTY);
-    } else if(cds.Value() < 1){             //BLUE
-        LCD.WriteLine("Light: BLUE");
-        SD.Printf("X: %f\t Y: %f", RPS.X(), RPS.Y());
-        SD.Printf("X: %f\t Y: %f", LIGHTX, LIGHTY);
-    } else
-    {
-        SD.Printf("X: %f\t Y: %f", RPS.X(), RPS.Y());
-        SD.Printf("X: %f\t Y: %f", LIGHTX, LIGHTY);
-        LCD.WriteLine("Not on light.");
-    }
-    Sleep(2000);
-    
-    //LCD.WriteLine("Move west until switch are pressed");
-    
-    Drive(40, WEST, NORTH);
-    while(RPS.X() < 14.5) {}
-    
-    /*
-     //ASSURE YOU ARE AGAINST WALL
-     if(switch7.Value()) //7 is unpressed
-     {
-     bLeft.SetPercent(50);
-     bRight.SetPercent(50);
-     while(switch7.Value()) {}
-     }
-     else if(switch6.Value())
-     {
-     fLeft.SetPercent(50);
-     fRight.SetPercent(50);
-     while(switch6.Value()) {}
-     }
-     */
-    
-    StopMotors();
-    
-    //LCD.WriteLine("Drive up hill.");
-    Drive(100, SOUTH, NORTH);
-    //    while(Accel.Z() < -.970) {}
-    //    LCD.WriteLine("On Hill.");
-    //    while(Accel.Z() > -.965) {}
-    //    LCD.WriteLine("Off Hill.");
-    
-    while(RPS.Y() < 45) {}
-    StopMotors();
-    Sleep(500);
-    if(!(((int)RPS.Heading() + 10) % 360 < 20))
-        Rotate(NORTH);
-    Drive(20, NORTH, NORTH);
-    
-    while(RPS.Y() > LEVERY + 1.25) {}
-    
-    Drive(20, EAST, NORTH);
-    
-    while(RPS.X() > LEVERX + 0.5) {}
-    SD.Printf("X: %f\t Y: %f", RPS.X(), RPS.Y());
-    SD.Printf("X: %f\t Y: %f", LEVERX, LEVERY);
-    
-    StopMotors();
-    serv.SetDegree(60);
-    Drive(15, WEST, NORTH);
-    Sleep(1000);
-    serv.SetDegree(180);
-    StopMotors();
-    LCD.WriteLine("End Program.");
+    testRotate();
     SD.CloseLog();
-    
-    //RPS.InitializeTouchMenu();
-    //SD.OpenLog();
-    //while(true){ Sleep(100); LCD.WriteLine(cds.Value());}
-    //Drive(30, 5.7, 26.4, true);
-    //SD.CloseLog();
 }
 
+/*
+ int main(void) {
+ LCD.Clear( FEHLCD::Black );
+ LCD.SetFontColor( FEHLCD::White );
+ 
+ //-.983 flat
+ //-.964
+ RPS.InitializeTouchMenu();
+ SD.OpenLog();
+ 
+ serv.SetMin(servMin);
+ serv.SetMax(servMax);
+ float LIGHTX = 0;
+ float LIGHTY = 0;
+ float LEVERX = 0;
+ float LEVERY = 0;
+ 
+ SD.Printf("1st: %f\t%f", RPS.X(), RPS.Y());
+ Drive(20, 15, NORTH);
+ Sleep(2000);
+ SD.Printf("2nd: %f\t%f", RPS.X(), RPS.Y());
+ Drive(20, 165, NORTH);
+ Sleep(2000);
+ SD.Printf("3rd: %f\t%f", RPS.X(), RPS.Y());
+ Drive(20, 285, NORTH);
+ Sleep(2000);
+ SD.Printf("4th: %f\t%f", RPS.X(), RPS.Y());
+ SD.CloseLog();
+ }
+ */
+
+/*
+ int main(void) {
+ LCD.Clear( FEHLCD::Black );
+ LCD.SetFontColor( FEHLCD::White );
+ 
+ //-.983 flat
+ //-.964
+ RPS.InitializeTouchMenu();
+ SD.OpenLog();
+ 
+ serv.SetMin(servMin);
+ serv.SetMax(servMax);
+ float LIGHTX = 0;
+ float LIGHTY = 0;
+ float LEVERX = 0;
+ float LEVERY = 0;
+ while(switch7.Value()) {}
+ LCD.WriteLine("Light Values Found.");
+ LIGHTX = RPS.X();
+ LIGHTY = RPS.Y();
+ Sleep(1000);
+ while(switch7.Value()) {}
+ LCD.WriteLine("Lever Values Found.");
+ LEVERX = RPS.X();
+ LEVERY = RPS.Y();
+ Sleep(1000);
+ while(switch6.Value()) {}
+ LCD.WriteLine("Getting Ready.");
+ serv.SetDegree(180);
+ Sleep(3000);
+ 
+ while(cds.Value() > 1){    LCD.WriteLine(cds.Value());
+ }
+ 
+ Drive(15, NORTH, NORTH);
+ while(RPS.Y() > LIGHTY + 1.25) {}
+ Drive(15, WEST, NORTH);
+ while(RPS.X() < LIGHTX - 0.5) {}
+ StopMotors();
+ if(cds.Value() < .6) {                  //RED
+ LCD.WriteLine("Light: RED");
+ SD.Printf("X: %f\t Y: %f", RPS.X(), RPS.Y());
+ SD.Printf("X: %f\t Y: %f", LIGHTX, LIGHTY);
+ } else if(cds.Value() < 1){             //BLUE
+ LCD.WriteLine("Light: BLUE");
+ SD.Printf("X: %f\t Y: %f", RPS.X(), RPS.Y());
+ SD.Printf("X: %f\t Y: %f", LIGHTX, LIGHTY);
+ } else
+ {
+ SD.Printf("X: %f\t Y: %f", RPS.X(), RPS.Y());
+ SD.Printf("X: %f\t Y: %f", LIGHTX, LIGHTY);
+ LCD.WriteLine("Not on light.");
+ }
+ Sleep(2000);
+ 
+ //LCD.WriteLine("Move west until switch are pressed");
+ 
+ Drive(40, WEST, NORTH);
+ while(RPS.X() < 14.5) {}
+ 
+ StopMotors();
+ 
+ //LCD.WriteLine("Drive up hill.");
+ Drive(100, SOUTH, NORTH);
+ //    while(Accel.Z() < -.970) {}
+ //    LCD.WriteLine("On Hill.");
+ //    while(Accel.Z() > -.965) {}
+ //    LCD.WriteLine("Off Hill.");
+ 
+ while(RPS.Y() < 45) {}
+ StopMotors();
+ Sleep(500);
+ if(!(((int)RPS.Heading() + 10) % 360 < 20))
+ Rotate(NORTH);
+ Drive(20, NORTH, NORTH);
+ 
+ while(RPS.Y() > LEVERY + 1.25) {}
+ 
+ Drive(20, EAST, NORTH);
+ 
+ while(RPS.X() > LEVERX + 0.5) {}
+ SD.Printf("X: %f\t Y: %f", RPS.X(), RPS.Y());
+ SD.Printf("X: %f\t Y: %f", LEVERX, LEVERY);
+ 
+ StopMotors();
+ serv.SetDegree(60);
+ Drive(15, WEST, NORTH);
+ Sleep(1000);
+ serv.SetDegree(180);
+ StopMotors();
+ LCD.WriteLine("End Program.");
+ SD.CloseLog();
+ 
+ //RPS.InitializeTouchMenu();
+ //SD.OpenLog();
+ //while(true){ Sleep(100); LCD.WriteLine(cds.Value());}
+ //Drive(30, 5.7, 26.4, true);
+ //SD.CloseLog();
+ }
+ */
 /*
  int main(void) {
  

@@ -364,7 +364,7 @@ void TurnSatellite() {
     Drive(20, EAST, NORTH);
     while(RPS.SatellitePercent() < 100);
     Drive(20,SOUTHEAST, NORTH);
-    Sleep(500 );
+    Sleep(500);
     StopMotors();
 
 }

@@ -65,9 +65,9 @@ DigitalInputPin switch7(FEHIO::P1_7);
 AnalogInputPin cds(FEHIO::P0_0);
 
 //Line Followers
-DigitalInputPin lLine(FEHIO::P0_1);
-DigitalInputPin cLine(FEHIO::P0_2);
-DigitalInputPin rLine(FEHIO::P0_3);
+AnalogInputPin rLine(FEHIO::P0_1);
+AnalogInputPin cLine(FEHIO::P0_2);
+AnalogInputPin lLine(FEHIO::P0_3);
 
 //Constants - North is towards sea, East is lever side
 const int NORTH = 0;
@@ -82,8 +82,7 @@ const double M_PI = 3.14159265358979323846264338327950288;
 const int servMin = 990;
 const int servMax = 1893;
 
-const float CORE_LINE_THRESHOLD;
-const float DUMP_LINE_THRESHOLD;
+
 
 
 //tasks
@@ -94,12 +93,31 @@ const float DUMP_LINE_THRESHOLD;
 #define EXTRACT_CORE 4
 #define DUMP_CORE 5
 #define PUSH_END_BTN 6
+#define DRIVE_UP_RAMP 7
 
 #define RED_LIGHT 1
 
 //Movement Methods
 
+//int** calculateDeterminant(int[2][2] A){
+//    int delta = A[0][0] * A[1][1] - A[0][1] * A[1][0];
+//    int** inverse = 0;
+//          inverse = new int*[2];
 
+//          for (int h = 0; h < 2; h++)
+//          {
+//                array2D[h] = new int[2];
+
+//                for (int w = 0; w < 2; w++)
+//                {
+//                      // fill in some initial values
+//                      // (filling in zeros would be more logic, but this is just for the example)
+//                      array2D[h][w] = 0;
+//                }
+//          }
+          
+
+//}
 
 
 struct Task{
@@ -253,18 +271,22 @@ bool DetectLine(AnalogInputPin sensor, float threshold) {
 
 float DriveOnLine(int motorPercent, int moveDirection, int facingDirection, float threshold) {
 
-   if(DetectLine(lLine, threshold) && DetectLine(rLine, threshold)) {
-       Drive(motorPercent, moveDirection, facingDirection);
-       } else if((DetectLine(rLine, threshold) && DetectLine(cLine, threshold)) || DetectLine(rline,threshold)) {   //to the left of the line
-       Drive(10, moveDirection - 90, facingDirection);
-       LCD.WriteLine("Shit is fucked.");
-       } else if((DetectLine(lLine, threshold) && DetectLine(cLine, threshold)) || DetectLine(lline,threshold)) {  //to the right of the line
-        Drive(10, moveDirection + 90, facingDirection);
-       }
-       else {
-       LCD.WriteLine("Shit is suppppperrr fucked.");
-       StopMotors();
-   }
+    int time = RPS.Time();
+        while(time - RPS.Time() > 3)
+        {
+            if(DetectLine(lLine, threshold) && DetectLine(rLine, threshold)) {
+                Drive(motorPercent, moveDirection, facingDirection);
+            } else if((DetectLine(rLine, threshold) && DetectLine(cLine, threshold)) || DetectLine(rLine,threshold)) {   //to the left of the line
+                Drive(10, moveDirection - 90, facingDirection);
+                LCD.WriteLine("Shit is fucked.");
+            } else if((DetectLine(lLine, threshold) && DetectLine(cLine, threshold)) || DetectLine(lLine,threshold)) {  //to the right of the line
+                Drive(10, moveDirection + 90, facingDirection);
+            }
+            else {
+                LCD.WriteLine("Shit is suppppperrr fucked.");
+                StopMotors();
+            }
+        }
 }
 
 void CalibrateRPS(){
@@ -283,17 +305,30 @@ void CalibrateRPS(){
     LCD.WriteLine("Light Values Found.");
     LIGHTX = RPS.X();
     LIGHTY = RPS.Y();
+    LCD.Write("X: ");
+    LCD.WriteLine(LIGHTX);
+    LCD.Write("Y: ");
+    LCD.WriteLine(LIGHTY);
     Sleep(1000);
     while(switch7.Value()) {}
     LCD.WriteLine("Lever Values Found.");
     LEVERX = RPS.X();
     LEVERY = RPS.Y();
+    LCD.Write("X: ");
+    LCD.WriteLine(LEVERX);
+    LCD.Write("Y: ");
+    LCD.WriteLine(LEVERY);
     Sleep(1000);
     while(switch7.Value());
     COREX = RPS.X();
     COREY = RPS.Y();
     COREH = RPS.Heading();
-    LCD.WriteLine("RPS Value, GET!!");
+    LCD.WriteLine("Core values found");
+    LCD.Write("X: ");
+    LCD.WriteLine(COREX);
+    LCD.Write("Y"
+              ": ");
+    LCD.WriteLine(COREY);
     while(switch6.Value()) {}
     LCD.WriteLine("Getting Ready.");
     serv.SetDegree(180);
@@ -317,23 +352,23 @@ void moveToCoreLight() {
 
 int readCoreLight() {
     if(cds.Value() < .6) {                  //RED
-           LCD.WriteLine("Light: RED");
-           SD.Printf("X: %f\t Y: %f", RPS.X(), RPS.Y());
-           SD.Printf("X: %f\t Y: %f", LIGHTX, LIGHTY);
-           return 1; //Returns one for on red light
-       } else if(cds.Value() < 1){             //BLUE
-           LCD.WriteLine("Light: BLUE");
-           SD.Printf("X: %f\t Y: %f", RPS.X(), RPS.Y());
-           SD.Printf("X: %f\t Y: %f", LIGHTX, LIGHTY);
-           return 0; //returns 0 for on blue light
-       } else
-       {
-           SD.Printf("X: %f\t Y: %f", RPS.X(), RPS.Y());
-           SD.Printf("X: %f\t Y: %f", LIGHTX, LIGHTY);
-           LCD.WriteLine("Not on light.");
-       }
-       Sleep(2000);
-       return -1; //for on no light
+            LCD.WriteLine("Light: RED");
+            SD.Printf("X: %f\t Y: %f", RPS.X(), RPS.Y());
+            SD.Printf("X: %f\t Y: %f", LIGHTX, LIGHTY);
+            return 1; //Returns one for on red light
+        } else if(cds.Value() < 1){             //BLUE
+            LCD.WriteLine("Light: BLUE");
+            SD.Printf("X: %f\t Y: %f", RPS.X(), RPS.Y());
+            SD.Printf("X: %f\t Y: %f", LIGHTX, LIGHTY);
+            return -1; //returns 0 for on blue light
+        } else
+        {
+            SD.Printf("X: %f\t Y: %f", RPS.X(), RPS.Y());
+            SD.Printf("X: %f\t Y: %f", LIGHTX, LIGHTY);
+            LCD.WriteLine("Not on light.");
+        }
+        Sleep(2000);
+        return 0; //for on no light
 }
 //Works on the assumption that you start from the switch
 void PushButton() {
@@ -345,27 +380,47 @@ void PushButton() {
 }
 
 
-void DumpCore(){
-
+void DumpCore(int lightType){
+    Rotate(EAST);
+    Drive(30,NORTH,EAST);
+        while(RPS.Y() > LIGHTY + 4.50);
+        Drive(20, EAST, EAST);
+        while (RPS.X() > LIGHTX + 1.0);
+        StopMotors();
+        Rotate(WEST);
+        int pow = lightType * 15;
+        Drive(pow, EAST, WEST);
+        Sleep(1500);
+        Drive(20, NORTH, WEST);
+        Sleep(1000);
+        StopMotors();
+        serv.SetDegree(0);
+        Sleep(100);
+        serv.SetDegree(180);
+        Sleep(100);
+        serv.SetDegree(0);
+        Sleep(100);
+        serv.SetDegree(180);
+        Drive(30, SOUTH, WEST);
+        Sleep(1500);
+        StopMotors();
 }
 
 void PullLever() {
 
 }
 void TurnSatellite() {
-    Drive(20,NORTH,NORTH);
-    Sleep(500);
-    StopMotors();
-    Sleep(200);
-    Drive(40,WEST, NORTH);
-    while(switch3.Value() && switch2.Value());
-    Drive(20,NORTH,NORTH);
-    while(switch5.Value());
-    Drive(20, EAST, NORTH);
-    while(RPS.SatellitePercent() < 100);
-    Drive(20,SOUTHEAST, NORTH);
-    Sleep(500);
-    StopMotors();
+    Drive(20,SOUTH, NORTH);
+        Sleep(1000);
+        Drive(40,WEST, NORTH);
+        while(switch6.Value() || switch7.Value()) {}
+        Drive(20,NORTH,NORTH);
+        while(switch1.Value()) {}
+        Drive(20, EAST, NORTH);
+        while(RPS.SatellitePercent() < 90) {LCD.WriteLine(RPS.SatellitePercent());}
+        Drive(20, SOUTH, NORTH);
+        Sleep(500);
+        StopMotors();
 
 }
 
@@ -376,38 +431,60 @@ void PushEndButton() {
 void ResetTask(struct Task){
 
 }
+void DriveUpRamp(){
+        Rotate(EAST);
+        Drive(20, EAST, EAST);
+        while(RPS.X() > 19.5) {}
+        Drive(100, SOUTH, EAST);
+        while(RPS.Y() < 40) {}
+        StopMotors();
+        Sleep(500);
+        Rotate(NORTH);
+}
 
 void ExtractCore(){
-    int degree = COREH;
+    SD.Printf("CORE AREA: X: %f, Y: %f", RPS.X(), RPS.Y());
+       Drive(20, WEST, NORTH);
+       while(RPS.X() < COREX-2) {}
+       Drive(10, WEST, NORTH);
+       while(RPS.X() < COREX) {}
+       Drive(10, EAST, NORTH);
+       while(RPS.X() > COREX) {}
+       Drive(20, SOUTH, NORTH);
+       while(RPS.Y() < COREY - 2) {}
+       Drive(20, SOUTH, NORTH);
+       while(RPS.Y() < COREY) {}
+       SD.Printf("%f, %f", RPS.X(), RPS.Y());
+       Rotate(NORTHEAST);
     serv.SetDegree(0);
-    Sleep(500);
-    Rotate(degree);
-    Drive(25,COREH-90, COREH);
-    Sleep(1000);
-    DriveOnLine(25, COREH-90, COREH,);
-    StopMotors();
-    Sleep(200);
-    Drive(-10, COREH-90, COREH );
-    Sleep(2000);
-    StopMotors();
-    Sleep(200);
-    for(int i = 0; i < 179; i++) {
-        serv.SetDegree(i);
-        Sleep(20);
-    }
+        Sleep(500);
+        Drive(25, SOUTHEAST, NORTHEAST);
+        Sleep(1500);
+        Drive(10, SOUTHEAST, NORTHEAST);
+        Sleep(1000);
+        //DriveOnLine(15, SOUTHEAST, NORTHEAST, 2.7);
+        //StopMotors();
+        Drive(20, NORTHWEST, NORTHEAST);
+        Sleep(3000);
+        StopMotors();
+        Sleep(200);
+        for(int i = 0; i < 179; i++) {
+            serv.SetDegree(i);
+            Sleep(20);
+        }
 
 
 }
 
 int main(int argc, const char * argv[]) {
     // insert code here...
-    //CalibrateRPS();
-    RPS.InitializeTouchMenu();
+    CalibrateRPS();
+    //RPS.InitializeTouchMenu();
     float x, y;
     while(!LCD.Touch(&x, &y));
-    int coreColor = -1;
-    int tasks[] = {READ_LIGHT, TURN_SAT,PULL_LEVER, PUSH_BTN, EXTRACT_CORE,
-                    DUMP_CORE, PUSH_END_BTN};
+    int coreColor = 0;
+    int tasks[] = {READ_LIGHT, TURN_SAT, DRIVE_UP_RAMP, EXTRACT_CORE, DUMP_CORE, PULL_LEVER, PUSH_BTN,
+                     PUSH_END_BTN};
     for(int i = 0; i < (sizeof(tasks)/sizeof(*tasks)); i++) {
         switch (tasks[i]) {
         case READ_LIGHT:
@@ -416,6 +493,9 @@ int main(int argc, const char * argv[]) {
             break;
         case TURN_SAT:
             TurnSatellite();
+            break;
+        case DRIVE_UP_RAMP:
+            DriveUpRamp();
             break;
         case PUSH_BTN:
             PushButton();
@@ -427,7 +507,7 @@ int main(int argc, const char * argv[]) {
             ExtractCore();
             break;
         case DUMP_CORE:
-            DumpCore();
+            DumpCore(coreColor);
             break;
         case PUSH_END_BTN:
             PushEndButton();
@@ -447,9 +527,13 @@ int main(int argc, const char * argv[]) {
 //        LCD.Clear();
 //    }
     while(!LCD.Touch(&x, &y)) {
-        LCD.WriteLine("Left Optosensor: %f", lLine.Value());
-        LCD.WriteLine("Left Optosensor: %f", cLine.Value());
-        LCD.WriteLine("Left Optosensor: %f", rLine.Value());
+        LCD.Write("Left Optosensor: ");
+        LCD.WriteLine(lLine.Value());
+        LCD.Write("Center Optosensor: ");
+        LCD.WriteLine(cLine.Value());
+        LCD.Write("Right Optosensor: ");
+        LCD.WriteLine(cLine.Value());
+
         Sleep(20);
         LCD.Clear();
     }

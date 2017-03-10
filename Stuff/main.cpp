@@ -327,15 +327,18 @@ int readCoreLight() {
 //Works on the assumption that you start from the switch
 void PushButton() {
     Drive(20, WEST, NORTH);
-    while(RPS.X() < BUTTONX);
-    StopMotors();
-    while(RPS.Y() < BUTTONY);
+    while(RPS.X() < BUTTONX - 1);
+    Rotate(NORTH);
     Drive(20, SOUTH, NORTH);
+    while(RPS.Y() < BUTTONY - 2);
+    Drive(10, SOUTH, NORTH);
+    Sleep(7000);
 }
 
 void PullLever() {
     
 }
+
 void TurnSatellite() {
     Drive(20,SOUTH, NORTH);
     Sleep(1000);
@@ -362,7 +365,7 @@ void ExtractCore(){
     serv.SetDegree(0);
     Sleep(500);
     Drive(25, SOUTHEAST, NORTHEAST);
-    Sleep(1500);
+    Sleep(2500);
     Drive(10, SOUTHEAST, NORTHEAST);
     Sleep(1000);
     //DriveOnLine(15, SOUTHEAST, NORTHEAST, 2.7);
@@ -398,7 +401,7 @@ void DumpCore(int lightType) {
     Sleep(100);
     serv.SetDegree(180);
     Drive(30, SOUTH, WEST);
-    Sleep(1500);
+    Sleep(1000);
     StopMotors();
 }
 
@@ -472,7 +475,6 @@ int main(void) {
     moveToCoreLight();
     int lightType = readCoreLight();
     TurnSatellite();
-    
     Rotate(EAST);
     Drive(20, EAST, EAST);
     while(RPS.X() > 19.5) {}
@@ -481,30 +483,39 @@ int main(void) {
     StopMotors();
     Sleep(500);
     Rotate(NORTH);
-    SD.Printf("CORE AREA: X: %f, Y: %f", RPS.X(), RPS.Y());
+    Drive(10, NORTH, NORTH);
+    while(RPS.Y() > LEVERY + 0.5) {}
+    Drive(20, EAST, NORTH);
+    while(RPS.X() > LEVERX + 1) {}
+    serv.SetDegree(60);
+    Drive(15, WEST, NORTH);
+    Sleep(1500);
+    serv.SetDegree(180);
+    PushButton();
+    Drive(20, NORTH, NORTH);
+    while(RPS.Y() > COREY + 2) {}
+    Drive(7, NORTH, NORTH);
+    while(RPS.Y() > COREY) {}
     Drive(20, WEST, NORTH);
     while(RPS.X() < COREX-2) {}
-    Drive(10, WEST, NORTH);
+    Drive(7, WEST, NORTH);
     while(RPS.X() < COREX) {}
-    Drive(10, EAST, NORTH);
+    Drive(7, EAST, NORTH);
     while(RPS.X() > COREX) {}
-    Drive(20, SOUTH, NORTH);
-    while(RPS.Y() < COREY - 2) {}
-    Drive(20, SOUTH, NORTH);
-    while(RPS.Y() < COREY) {}
-    SD.Printf("%f, %f", RPS.X(), RPS.Y());
     Rotate(NORTHEAST);
     ExtractCore();
     Rotate(EAST);
     DumpCore(lightType);
+    Drive(10, EAST, WEST);
+    while(switch5.Value() || switch4.Value()){}
+    Drive(15, WEST, WEST);
+    Sleep(500);
+    Drive(20, SOUTH, WEST);
     LCD.WriteLine("Finished");
-    
     
     //24 away from core
     //72 is max y, 36 is max x
     //put it 18 away from maxes
-    
-    
 }
 
 /*

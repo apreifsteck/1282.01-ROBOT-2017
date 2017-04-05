@@ -264,40 +264,40 @@ bool DetectLine(AnalogInputPin sensor, float threshold) {
 float DriveOnLine(int motorPercent, int moveDirection, int facingDirection, float threshold, double elapsedTime) {
     LCD.Clear();
     double time = TimeNow();
-    bool foundLine = false;
     while(TimeNow() - time < elapsedTime)
     {
         LCD.WriteRC(lLine.Value(), 1, 1);
         LCD.WriteRC(cLine.Value(), 3, 1);
         LCD.WriteRC(rLine.Value(), 5, 1);
         if(!DetectLine(lLine, threshold) && !DetectLine(rLine, threshold) && DetectLine(cLine, threshold)) { //on the line
-            Drive(motorPercent, moveDirection, facingDirection);
-            Sleep(1000);
+            fLeft.SetPercent(motorPercent);
+            fRight.SetPercent(motorPercent);
+            bLeft.SetPercent(-motorPercent);
+            bRight.SetPercent(-motorPercent);
             LCD.WriteRC("On Line", 7 , 1);
-            foundLine = true;
         } else if((DetectLine(rLine, threshold) && DetectLine(cLine, threshold)) || DetectLine(rLine,threshold)) {   //to the left of the line
-            Drive(10, moveDirection - 45, facingDirection);
-            Sleep(100);
+            //Drive(10, moveDirection - 45, facingDirection);
+            fLeft.SetPercent(0);
+            fRight.SetPercent(motorPercent);
+            bLeft.SetPercent(-motorPercent);
+            bRight.SetPercent(0);
             LCD.WriteRC("Left of line", 7 , 1);
-            foundLine = true;
         } else if((DetectLine(lLine, threshold) && DetectLine(cLine, threshold)) || DetectLine(lLine,threshold)) {  //to the right of the line
-            Drive(10, moveDirection + 45, facingDirection);
-            Sleep(100);
+            //Drive(10, moveDirection + 45, facingDirection);
+            fLeft.SetPercent(motorPercent);
+            fRight.SetPercent(0);
+            bLeft.SetPercent(0);
+            bRight.SetPercent(-motorPercent);
             LCD.WriteRC("Right of line", 7 , 1);
-            foundLine = true;
         }
         else {
-            Drive(20, NORTHEAST, SOUTHWEST);
-            Sleep(100);
+            fLeft.SetPercent(0);
+            fRight.SetPercent(motorPercent);
+            bLeft.SetPercent(-motorPercent);
+            bRight.SetPercent(0);
             LCD.WriteRC("Shit is suppppperrr fucked.", 7, 1);
             StopMotors();
-            foundLine = false;
         }
-    }
-    if(!foundLine) {
-        Drive(20, SOUTHEAST, SOUTHWEST);
-        while(!DetectLine(lLine, threshold)) {}
-        DriveOnLine(30, SOUTHEAST, NORTHEAST, 2.0, 1.5);
     }
 }
 
@@ -322,10 +322,10 @@ void CalibrateRPS(){
     LEVERX = RPS.X();
     LEVERY = RPS.Y();
     Sleep(1000);
-    while(switch7.Value()) {LCD.WriteRC(RPS.X(),0,0);LCD.WriteRC(RPS.Y(),1,0);}
-    COREX = RPS.X();
-    COREY = RPS.Y();
-    LCD.WriteLine("Core Values Found.");
+    //    while(switch7.Value()) {LCD.WriteRC(RPS.X(),0,0);LCD.WriteRC(RPS.Y(),1,0);}
+    //    COREX = RPS.X();
+    //    COREY = RPS.Y();
+    //    LCD.WriteLine("Core Values Found.");
     while(switch6.Value()) {}
     LCD.WriteLine("Getting Ready.");
     serv.SetDegree(180);
@@ -344,7 +344,7 @@ void moveToCoreLight() {
     Drive(10, EAST, NORTH);
     while(RPS.X() > LIGHTX + 0.5) {}
     Drive(30, NORTH, NORTH);
-    while(RPS.Y() > LIGHTY + 1.5) {}
+    while(RPS.Y() > LIGHTY + 1.75) {}
     Drive(10, SOUTH, NORTH);
     while(RPS.Y() < LIGHTY - 0.5) {}
     StopMotors();
@@ -365,7 +365,7 @@ void fixCoreLight() {
 int readCoreLight() {
     int value = 0;
     while(value == 0) {
-        if(cds.Value() < .6) {                  //RED
+        if(cds.Value() < .55) {                  //RED
             LCD.WriteLine("Light: RED");
             LCD.Clear( FEHLCD::Red );
             value = 1; //Returns one for on red light
@@ -385,13 +385,13 @@ int readCoreLight() {
 //Works on the assumption that you start from the switch
 void PushButton() {
     Rotate(NORTH);
-    Drive(50, SOUTHWEST, NORTH);
-    while(RPS.X() < BUTTONX - 1.5);
+    Drive(100, SOUTHWEST, NORTH);
+    while(RPS.X() < BUTTONX - 5.0);
     Rotate(NORTH);
     Drive(60, SOUTH, NORTH);
     while(RPS.Y() < BUTTONY - 1.0);
     Drive(10, SOUTH, NORTH);
-    Sleep(6000);
+    Sleep(5500);
 }
 
 void PullLever() {
@@ -399,14 +399,12 @@ void PullLever() {
     Drive(70, EAST, EAST);
     while(RPS.X() > 23) {}
     Drive(100, SOUTH, EAST);
-    while(RPS.Y() < 40) {
-        if(RPS.X() < 0) {
-            LCD.Clear( FEHLCD::Black );
-        }
-    }
-    Drive(20, NORTH, EAST);
-    while(RPS.Y() < 0 || RPS.Y() > 46.0) {
-        LCD.Clear( FEHLCD::Gray );
+    while(RPS.Y() < 40) {}
+    StopMotors();
+    Sleep(300);
+    Drive(40, NORTH, EAST);
+    while(RPS.Y() < 0 || RPS.Y() > 47.5) {
+        LCD.Clear( FEHLCD::Green );
         LCD.WriteRC(RPS.X(),1,1);
         LCD.WriteRC(RPS.Y(),2,1);
     }
@@ -414,16 +412,12 @@ void PullLever() {
     StopMotors();
     Rotate(NORTH);
     SD.Printf("%f, %f\n", RPS.X(), RPS.Y());
-    //    Drive(10, NORTH, NORTH);
-    //    while(RPS.Y() > LEVERY + 0.5) {}
-    //    Drive(10, SOUTH, NORTH);
-    //    while(RPS.Y() < LEVERY) {}
     Drive(40, EAST, NORTH);
-    while(RPS.X() > LEVERX + .75) {}
-    Drive(10, NORTH, NORTH);
+    while(RPS.X() > LEVERX + 1.75) {}
+    Drive(20, NORTH, NORTH);
     while(RPS.Y() > LEVERY + 0.5) {}
-    Drive(10, SOUTH, NORTH);
-    while(RPS.Y() < LEVERY) {}
+    Drive(20, SOUTH, NORTH);
+    while(RPS.Y() < LEVERY - 0.5) {}
     serv.SetDegree(60);
     Drive(15, WEST, NORTH);
     Sleep(500);
@@ -434,23 +428,23 @@ void TurnSatellite() {
     Drive(50, SOUTHWEST, NORTH);
     Sleep(200);
     Drive(100, WEST, NORTH);
-    while(RPS.X() < 25) {}
+    while(RPS.X() < 23.5) {}
     Drive(50, WEST, NORTH);
     while(switch6.Value() || switch7.Value()) {}
     Drive(50, NORTH,NORTH);
     while(switch1.Value()) {}
     Drive(50, EAST, NORTH);
-    while(RPS.X() > 25) {}
+    while(RPS.X() > 25.0) {}
     Drive(70, SOUTHEAST, NORTH);
-    Sleep(500);
+    Sleep(375);
     StopMotors();
 }
 
 void PushEndButton(int lightType) {
     SD.CloseLog();
     if(lightType == 1) {
-        Drive(30, EAST, WEST);
-        Sleep(100);
+        Drive(50, SOUTHEAST, WEST);
+        Sleep(300);
     }
     else {
         Drive(50, EAST, WEST);
@@ -497,6 +491,16 @@ void SetupCore2() {
     }
 }
 
+void SetupCore3() {
+    Drive(40, NORTH, NORTH);
+    Sleep(650);
+    Rotate(NORTHEAST);
+    Drive(50, EAST, NORTHEAST);
+    serv.SetDegree(0);
+    while(!DetectLine(lLine, 2.0)) {LCD.WriteLine(cLine.Value());}
+    
+}
+
 void ExtractCore(){
     serv.SetDegree(0);
     Drive(40, SOUTHEAST, NORTHEAST);
@@ -513,15 +517,27 @@ void ExtractCore(){
     StopMotors();
 }
 
+void ExtractCore2() {
+    DriveOnLine(25, SOUTHEAST, NORTHEAST, 1.7, 1.5);
+    Drive(45, NORTHWEST, NORTHEAST);
+    Sleep(500);
+    for(int i = 0; i < 179; i+=5) {
+        serv.SetDegree(i);
+        Sleep(20);
+    }
+    while(RPS.X() < 0.0) {}
+    StopMotors();
+}
+
 void DumpCore(int lightType) {
     Rotate(WEST);
-    Drive(50, NORTH, WEST);
-    while(RPS.Y() > LIGHTY + 4.50);
+    Drive(70, NORTH, WEST);
+    while(RPS.Y() > LIGHTY + 5.50 || RPS.Y() < 0);
     Rotate(WEST);
     double goalX = 5;
     double buffer = 4.2;
     if(lightType == -1) {
-        goalX = 14.5;
+        goalX = 15.0;
         buffer = 1.0;
     }
     Drive(10, WEST, WEST);
@@ -537,18 +553,18 @@ void DumpCore(int lightType) {
     StopMotors();
     serv.SetDegree(0);
     Sleep(300);
-    serv.SetDegree(60);
-    Sleep(100);
+    serv.SetDegree(90);
+    Sleep(150);
     serv.SetDegree(0);
-    Sleep(100);
-    serv.SetDegree(60);
-    Sleep(100);
+    Sleep(150);
+    serv.SetDegree(90);
+    Sleep(150);
     serv.SetDegree(0);
-    Sleep(100);
-    serv.SetDegree(60);
-    Sleep(100);
+    Sleep(150);
+    serv.SetDegree(90);
+    Sleep(150);
     serv.SetDegree(0);
-    Sleep(100);
+    Sleep(150);
     serv.SetDegree(180);
     Drive(50, SOUTH, WEST);
     Sleep(500);
@@ -581,8 +597,8 @@ int main(void) {
     TurnSatellite();
     PullLever();
     PushButton();
-    SetupCore();
-    ExtractCore();
+    SetupCore3();
+    ExtractCore2();
     DumpCore(lightType);
     PushEndButton(lightType);
     LCD.WriteLine("Finished");
@@ -591,3 +607,14 @@ int main(void) {
     //72 is max y, 36 is max x
     //put it 18 away from maxes
 }
+
+
+/*
+ int main(void) {
+ while(true) {
+ LCD.WriteRC(lLine.Value(),0,0);
+ LCD.WriteRC(cLine.Value(),1,0);
+ LCD.WriteRC(rLine.Value(),2,0);
+ }
+ }
+ */
